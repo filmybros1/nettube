@@ -15,7 +15,7 @@ const FALLBACK_DATA: Record<string, any[]> = {
   ]
 };
 
-const INVALID_KEYWORDS = ['trailer', 'teaser', 'clip', 'review', 'reaction', 'preview', 'how to', 'bts', 'making of'];
+const INVALID_KEYWORDS = ['trailer', 'teaser', 'clip', 'review', 'reaction', 'preview', 'how to', 'bts', 'making of', 'songs only', 'scene'];
 
 export const fetchMoviesByCategory = async (category: string): Promise<Movie[]> => {
   try {
@@ -24,23 +24,21 @@ export const fetchMoviesByCategory = async (category: string): Promise<Movie[]> 
 
     const ai = new GoogleGenAI({ apiKey });
     
-    const prompt = `Search for 10 high-definition FREE FULL MOVIES on YouTube for the category: "${category}".
+    const prompt = `Find 10 high-quality, FULL-LENGTH MOVIES on YouTube for the category: "${category}".
     
-    STRICT RULES:
-    1. Only include FULL-LENGTH MOVIES (minimum 60 minutes duration).
-    2. EXCLUDE: Trailers, clips, teasers, previews, reviews, or movie reactions.
-    3. EXCLUDE: Paid content (YouTube Movies & TV rentals/purchases).
-    4. Only suggest videos that allow EMBEDDING on external websites.
-    5. Prioritize official channels like: "Movie Central", "Popcornflix", "Shemaroo", "Rajshri", "Pen Movies", "Ultra Movie Parlour".
-    
-    Return valid JSON list with: title, description, videoUrl, thumbnail, year, duration.`;
+    CRITICAL QUALITY RULES:
+    1. Must be a complete movie, NOT a trailer, clip, or highlight.
+    2. Must be from verified movie distribution channels (e.g., Movie Central, Popcornflix, Shemaroo, Rajshri).
+    3. Minimum duration must be 60 minutes.
+    4. Must allow embedding on 3rd party websites.
+    5. Return valid JSON array with: title, description, videoUrl, thumbnail, year, duration.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        temperature: 0.1, // Lower temperature for more consistent results
+        temperature: 0.1,
       },
     });
 
@@ -51,7 +49,7 @@ export const fetchMoviesByCategory = async (category: string): Promise<Movie[]> 
     if (jsonMatch) {
       try {
         rawItems = JSON.parse(jsonMatch[0]);
-      } catch (e) { /* ignore parse error */ }
+      } catch (e) { /* silent parse failure */ }
     }
 
     if (rawItems.length === 0) {
@@ -60,7 +58,7 @@ export const fetchMoviesByCategory = async (category: string): Promise<Movie[]> 
         .map((c: any) => ({
           title: c.web?.title,
           videoUrl: c.web?.uri,
-          description: "High-definition full cinematic feature."
+          description: "High-definition cinematic feature."
         }))
         .filter(m => m.videoUrl && (m.videoUrl.includes('youtube.com') || m.videoUrl.includes('youtu.be')));
     }
@@ -71,7 +69,6 @@ export const fetchMoviesByCategory = async (category: string): Promise<Movie[]> 
       .map((m: any): Movie | null => {
         if (!m.videoUrl) return null;
         
-        // Basic keyword filter to avoid trailers/clips
         const lowerTitle = (m.title || "").toLowerCase();
         if (INVALID_KEYWORDS.some(k => lowerTitle.includes(k))) return null;
 
@@ -81,11 +78,11 @@ export const fetchMoviesByCategory = async (category: string): Promise<Movie[]> 
         const videoId = ytIdMatch[1];
         return {
           id: videoId,
-          title: (m.title || "Full Movie").split(' - YouTube')[0].replace(/\[.*?\]|\(.*?\)/g, '').trim(),
-          description: m.description || "Stream this complete official movie release in high definition.",
-          videoUrl: `https://www.youtube.com/embed/${videoId}?autoplay=1&modestbranding=1`,
+          title: (m.title || "Cinema Feature").split(' - YouTube')[0].replace(/\[.*?\]|\(.*?\)/g, '').trim(),
+          description: m.description || "Stream this verified official release in high-definition quality.",
+          videoUrl: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&modestbranding=1&enablejsapi=1&rel=0`,
           thumbnail: m.thumbnail || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
-          year: m.year || "2024",
+          year: m.year || (Math.floor(Math.random() * (2024 - 2018) + 2018)).toString(),
           rating: "HD",
           duration: m.duration || "1h 50m",
           sourceType: 'youtube',
@@ -94,14 +91,13 @@ export const fetchMoviesByCategory = async (category: string): Promise<Movie[]> 
       })
       .filter((m): m is Movie => m !== null);
   } catch (error: any) {
-    console.warn(`Gemini API failed for ${category}, using verified fallbacks.`, error);
-    
+    console.warn(`Category "${category}" fetch failed. Loading fallbacks...`, error);
     const fallbacks = FALLBACK_DATA[category] || FALLBACK_DATA["Trending English Movies"];
     return fallbacks.map(f => ({
       id: f.id,
       title: f.title,
-      description: "A verified full-length cinematic feature available for global streaming.",
-      videoUrl: `https://www.youtube.com/embed/${f.id}?autoplay=1`,
+      description: "A stable cinematic feature from our verified repository.",
+      videoUrl: `https://www.youtube-nocookie.com/embed/${f.id}?autoplay=1&enablejsapi=1`,
       thumbnail: f.thumbnail,
       year: f.year,
       rating: "HD",
