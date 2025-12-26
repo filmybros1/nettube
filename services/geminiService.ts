@@ -1,35 +1,28 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { Movie } from "../types";
+import { Movie } from "../types.ts";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const FALLBACK_DATA: Record<string, any[]> = {
+  "Global Trending Music Videos": [
+    { id: "h8nIHZ-0kS4", title: "Starboy - The Weeknd ft. Daft Punk", year: "2024", duration: "4:33", thumbnail: "https://img.youtube.com/vi/h8nIHZ-0kS4/maxresdefault.jpg" },
+    { id: "kJQP7kiw5Fk", title: "Despacito - Luis Fonsi ft. Daddy Yankee", year: "2024", duration: "4:41", thumbnail: "https://img.youtube.com/vi/kJQP7kiw5Fk/maxresdefault.jpg" },
+    { id: "09R8_2nJtjg", title: "Sugar - Maroon 5", year: "2023", duration: "5:01", thumbnail: "https://img.youtube.com/vi/09R8_2nJtjg/maxresdefault.jpg" }
+  ],
+  "Pop Chart Toppers": [
+    { id: "fHI8X4OXluQ", title: "Blinding Lights - The Weeknd", year: "2024", duration: "4:22", thumbnail: "https://img.youtube.com/vi/fHI8X4OXluQ/maxresdefault.jpg" },
+    { id: "TUVcZfQe-Kw", title: "Levitating - Dua Lipa", year: "2024", duration: "3:50", thumbnail: "https://img.youtube.com/vi/TUVcZfQe-Kw/maxresdefault.jpg" }
+  ]
+};
 
 export const fetchMoviesByCategory = async (category: string): Promise<Movie[]> => {
   try {
-    const prompt = `Find 10 high-quality, popular videos for the category: "${category}". 
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) throw new Error("API_KEY_MISSING");
+
+    const ai = new GoogleGenAI({ apiKey });
     
-    CRITICAL INSTRUCTIONS FOR EMBEDDABILITY:
-    1. PRIORITIZE: Official Trailers (from Rotten Tomatoes, Movieclips, or Studio channels), Documentaries, and Public Domain films.
-    2. SOURCES: YouTube, Vimeo, Dailymotion, or Archive.org.
-    3. STRICTLY AVOID: "YouTube Movies & TV" (Paid/Rentals) as they NEVER allow embedding. 
-    4. Ensure the content is publicly accessible and allows third-party player embedding.
-    
-    Return a JSON array of objects with:
-    - title: Clear title.
-    - description: One line summary.
-    - videoUrl: The direct link to the video.
-    - thumbnail: High-res poster image URL.
-    - year: Release year (e.g. 2024).
-    - rating: Maturity rating (e.g. PG-13).
-    - duration: Runtime (e.g. 2h 15m).
-    - platform: One of 'youtube', 'vimeo', 'dailymotion', or 'direct'.
-    
-    Format:
-    \`\`\`json
-    [
-      { "title": "...", "description": "...", "videoUrl": "...", "thumbnail": "...", "year": "...", "rating": "...", "duration": "...", "platform": "..." }
-    ]
-    \`\`\``;
+    const prompt = `Search for 10 high-definition OFFICIAL MUSIC VIDEOS on YouTube for: "${category}".
+    Return valid JSON list with: title, description, videoUrl, thumbnail, year, duration.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -40,65 +33,63 @@ export const fetchMoviesByCategory = async (category: string): Promise<Movie[]> 
     });
 
     const text = response.text || "";
-    const jsonMatch = text.match(/```json\s?([\s\S]*?)\s?```/) || text.match(/\[\s?\{[\s\S]*?\}\s?\]/);
+    const jsonMatch = text.match(/\[\s?\{[\s\S]*?\}\s?\]/);
     
-    let rawMovies: any[] = [];
+    let rawItems: any[] = [];
     if (jsonMatch) {
       try {
-        const jsonStr = jsonMatch[1] || jsonMatch[0];
-        rawMovies = JSON.parse(jsonStr);
-      } catch (e) { console.error("JSON parse error:", e); }
+        rawItems = JSON.parse(jsonMatch[0]);
+      } catch (e) { /* ignore parse error */ }
     }
 
-    if (rawMovies.length === 0) {
+    if (rawItems.length === 0) {
       const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-      rawMovies = chunks.map((c: any) => ({
-        title: c.web?.title,
-        videoUrl: c.web?.uri,
-        description: "Experience this cinematic content from across the web.",
-        platform: 'other'
-      })).filter(m => m.videoUrl);
+      rawItems = chunks
+        .map((c: any) => ({
+          title: c.web?.title,
+          videoUrl: c.web?.uri,
+          description: "Premium visual experience."
+        }))
+        .filter(m => m.videoUrl && (m.videoUrl.includes('youtube.com') || m.videoUrl.includes('youtu.be')));
     }
 
-    return rawMovies
+    if (rawItems.length === 0) throw new Error("NO_RESULTS");
+
+    return rawItems
       .map((m: any, idx: number): Movie | null => {
         if (!m.videoUrl) return null;
-
-        const url = m.videoUrl;
-        let sourceType: Movie['sourceType'] = 'other';
-
-        // Robust Platform Detection
-        const ytIdMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-        const vimeoIdMatch = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
-        const dailyIdMatch = url.match(/dailymotion\.com\/video\/([a-zA-Z0-9]+)/);
-        const isDirect = url.match(/\.(mp4|webm|ogg)$/i);
-
-        if (ytIdMatch) sourceType = 'youtube';
-        else if (vimeoIdMatch) sourceType = 'vimeo';
-        else if (dailyIdMatch) sourceType = 'dailymotion';
-        else if (isDirect) sourceType = 'direct';
-
-        const videoId = ytIdMatch ? ytIdMatch[1] : 
-                        vimeoIdMatch ? vimeoIdMatch[1] : 
-                        dailyIdMatch ? dailyIdMatch[1] : 
-                        `ext-${idx}-${category.replace(/\s/g, '')}`;
-
+        const ytIdMatch = m.videoUrl.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+        if (!ytIdMatch) return null;
+        const videoId = ytIdMatch[1];
         return {
           id: videoId,
-          title: (m.title || "Untitled Cinematic").replace(/ - YouTube$/, '').split(' | ')[0],
-          description: m.description || "A highly rated title curated specifically for your profile.",
-          videoUrl: url,
-          thumbnail: m.thumbnail || (ytIdMatch ? `https://img.youtube.com/vi/${ytIdMatch[1]}/maxresdefault.jpg` : `https://picsum.photos/seed/${videoId}/800/450`),
-          year: m.year || "2024",
-          rating: m.rating || "PG-13",
-          duration: m.duration || "2h",
-          sourceType,
+          title: (m.title || "Untitled Track").split(' - YouTube')[0],
+          description: m.description || "Immersive cinematic audio-visual journey.",
+          videoUrl: `https://www.youtube.com/embed/${videoId}?autoplay=1&modestbranding=1`,
+          thumbnail: m.thumbnail || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+          year: m.year || "2025",
+          rating: "4K UHD",
+          duration: m.duration || "4:00",
+          sourceType: 'youtube',
           category: category
         };
       })
       .filter((m): m is Movie => m !== null);
-  } catch (error) {
-    console.error("Gemini Multi-Source Fetch Error:", error);
-    return [];
+  } catch (error: any) {
+    console.warn(`Gemini API failed for ${category}, using fallback.`, error);
+    
+    const fallbacks = FALLBACK_DATA[category] || FALLBACK_DATA["Global Trending Music Videos"];
+    return fallbacks.map(f => ({
+      id: f.id,
+      title: f.title,
+      description: "Experience the ultimate audio-visual masterpiece in high fidelity.",
+      videoUrl: `https://www.youtube.com/embed/${f.id}?autoplay=1`,
+      thumbnail: f.thumbnail,
+      year: f.year,
+      rating: "HD",
+      duration: f.duration,
+      sourceType: 'youtube',
+      category: category
+    }));
   }
 };

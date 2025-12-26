@@ -2,19 +2,19 @@
 import React from 'react';
 
 export const CATEGORIES = [
-  "Trending Now",
-  "Free Full Movies on YouTube",
-  "Popular Web Series",
-  "New on YouTube Movies",
-  "Action & Adventure",
-  "Documentaries",
-  "Sci-Fi & Fantasy",
-  "Comedies"
+  "Global Trending Music Videos",
+  "Pop Chart Toppers",
+  "Hip Hop & Rap Essentials",
+  "Electronic & Dance Anthems",
+  "K-Pop World Stage",
+  "Rock & Alternative Classics",
+  "Acoustic & Unplugged Sessions",
+  "R&B/Soul Melodies"
 ];
 
-export const NETTUBE_RED = "#E50914";
+export const NETTUBE_VIOLET = "#8B5CF6";
+export const NETTUBE_PINK = "#EC4899";
 
-// Updated Icon components to accept and pass through onClick handler
 export const Icons = {
   Play: ({ className, onClick }: { className?: string; onClick?: () => void }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className={className} onClick={onClick}>
@@ -49,6 +49,11 @@ export const Icons = {
   Close: ({ className, onClick }: { className?: string; onClick?: () => void }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className={className} onClick={onClick}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  ),
+  Music: ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
     </svg>
   ),
 };

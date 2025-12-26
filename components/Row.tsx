@@ -1,8 +1,8 @@
 
 import React, { useRef } from 'react';
-import { Movie } from '../types';
-import MovieCard from './MovieCard';
-import { Icons } from '../constants';
+import { Movie } from '../types.ts';
+import MovieCard from './MovieCard.tsx';
+import { Icons } from '../constants.tsx';
 
 interface RowProps {
   title: string;

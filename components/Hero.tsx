@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { Movie } from '../types';
-import { Icons } from '../constants';
+import { Movie } from '../types.ts';
+import { Icons } from '../constants.tsx';
 
 interface HeroProps {
   movie: Movie | null;
@@ -10,74 +10,86 @@ interface HeroProps {
 
 const Hero: React.FC<HeroProps> = ({ movie, onInfoClick }) => {
   if (!movie) return (
-    <div className="relative h-[85vh] w-full flex items-center justify-center">
-      <div className="h-20 w-20 animate-pulse rounded-full border-4 border-violet-500 border-t-transparent" />
+    <div className="relative h-[90vh] w-full flex items-center justify-center bg-black">
+      <div className="h-12 w-12 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
     </div>
   );
 
   return (
-    <div className="relative min-h-[90vh] w-full pt-20 px-6 lg:px-24 flex items-center overflow-hidden">
-      {/* Background with Ambient Glow */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <img 
-          src={movie.thumbnail} 
-          alt="" 
-          className="h-full w-full object-cover scale-105 blur-[80px] opacity-20"
-        />
-        <div className="absolute top-1/2 left-1/4 -translate-y-1/2 h-[500px] w-[500px] bg-violet-600/20 blur-[120px] rounded-full" />
+    <div className="relative min-h-[100vh] w-full pt-20 px-6 lg:px-24 flex items-center overflow-hidden">
+      {/* Immersive Ambient Glow Background */}
+      <div className="absolute inset-0 -z-10 bg-black">
+        <div className="absolute inset-0 overflow-hidden">
+          <img 
+            src={movie.thumbnail} 
+            alt="" 
+            className="h-full w-full object-cover scale-125 blur-[120px] opacity-40 ambient-glow"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/30 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-black to-transparent" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 w-full max-w-7xl mx-auto">
-        <div className="lg:col-span-7 flex flex-col justify-center space-y-8">
-          <div className="space-y-4">
-            <span className="inline-block px-3 py-1 rounded-full bg-violet-500/10 text-violet-400 text-xs font-bold uppercase tracking-widest border border-violet-500/20">
-              Featured This Week
-            </span>
-            <h1 className="text-5xl lg:text-7xl font-bold leading-tight text-white tracking-tight">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 w-full max-w-7xl mx-auto z-10">
+        <div className="lg:col-span-8 flex flex-col justify-center space-y-12">
+          <div className="space-y-6">
+            <div className="flex items-center space-x-3">
+              <div className="flex -space-x-1">
+                {[1,2,3].map(i => (
+                  <div key={i} className="h-2 w-2 rounded-full bg-violet-500 border border-black" />
+                ))}
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-violet-400">
+                Premium Selection
+              </span>
+            </div>
+            
+            <h1 className="text-7xl lg:text-[120px] font-black leading-[0.85] text-white tracking-tighter text-glow">
               {movie.title}
             </h1>
-            <div className="flex items-center space-x-4 text-gray-400 text-sm font-medium">
-              <span>{movie.year}</span>
-              <span className="w-1 h-1 bg-gray-600 rounded-full" />
-              <span className="border border-white/20 px-2 rounded">{movie.rating}</span>
-              <span className="w-1 h-1 bg-gray-600 rounded-full" />
+
+            <div className="flex items-center space-x-8 text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
+              <span className="text-white bg-white/10 px-3 py-1 rounded">{movie.year}</span>
+              <span className="flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]" />
+                {movie.rating}
+              </span>
               <span>{movie.duration}</span>
             </div>
-            <p className="max-w-xl text-lg text-gray-300/90 leading-relaxed font-light">
+
+            <p className="max-w-xl text-lg text-gray-300 font-medium leading-relaxed opacity-80">
               {movie.description}
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-6">
             <button 
               onClick={() => onInfoClick(movie)}
-              className="flex items-center space-x-3 rounded-full bg-white px-10 py-4 text-black font-bold transition-all hover:scale-105 active:scale-95 shadow-xl shadow-white/5"
+              className="group relative flex items-center space-x-6 rounded-full bg-white px-14 py-6 text-black transition-all hover:scale-105 active:scale-95 shadow-[0_20px_40px_rgba(255,255,255,0.1)]"
             >
-              <Icons.Play className="h-5 w-5 fill-current" />
-              <span>Start Watching</span>
+              <Icons.Play className="h-6 w-6 fill-current" />
+              <span className="font-black uppercase tracking-widest text-sm">Experience</span>
             </button>
             <button 
               onClick={() => onInfoClick(movie)}
-              className="flex items-center space-x-3 rounded-full bg-white/5 border border-white/10 px-10 py-4 text-white font-bold transition-all hover:bg-white/10 backdrop-blur-md"
+              className="flex items-center space-x-6 rounded-full glass px-14 py-6 text-white font-bold transition-all hover:bg-white/10"
             >
-              <Icons.Info className="h-5 w-5" />
-              <span>See Details</span>
+              <Icons.Info className="h-6 w-6" />
+              <span className="font-black uppercase tracking-widest text-sm">Overview</span>
             </button>
           </div>
         </div>
 
-        <div className="hidden lg:col-span-5 lg:flex items-center justify-center">
-          <div className="relative group cursor-pointer float-animation" onClick={() => onInfoClick(movie)}>
-            <div className="absolute inset-0 bg-violet-500/20 blur-2xl group-hover:bg-violet-500/40 transition-all rounded-3xl" />
-            <img 
-              src={movie.thumbnail} 
-              alt={movie.title} 
-              className="relative h-[480px] w-80 rounded-3xl object-cover border border-white/10 shadow-2xl transition-transform group-hover:scale-[1.02]" 
-            />
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-               <div className="h-16 w-16 rounded-full glass flex items-center justify-center">
-                 <Icons.Play className="h-8 w-8 text-white ml-1" />
-               </div>
+        <div className="hidden lg:col-span-4 lg:flex items-center justify-center">
+          <div className="relative group cursor-pointer" onClick={() => onInfoClick(movie)}>
+            <div className="absolute inset-0 bg-violet-600/40 blur-[80px] rounded-full group-hover:bg-violet-500/60 transition-all duration-700" />
+            <div className="relative h-[500px] w-80 overflow-hidden rounded-[2.5rem] border border-white/20 shadow-2xl transition-transform duration-700 group-hover:rotate-2 group-hover:scale-105">
+              <img 
+                src={movie.thumbnail} 
+                alt={movie.title} 
+                className="h-full w-full object-cover transition-transform duration-[2s] group-hover:scale-110" 
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             </div>
           </div>
         </div>
