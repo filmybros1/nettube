@@ -2,14 +2,14 @@
 import React from 'react';
 
 export const CATEGORIES = [
-  "Global Trending Music Videos",
-  "Pop Chart Toppers",
-  "Hip Hop & Rap Essentials",
-  "Electronic & Dance Anthems",
-  "K-Pop World Stage",
-  "Rock & Alternative Classics",
-  "Acoustic & Unplugged Sessions",
-  "R&B/Soul Melodies"
+  "Trending English Movies",
+  "Latest Hindi Full Movies",
+  "Hollywood Action Cinema",
+  "Bollywood Romance Hits",
+  "English Thriller Movies",
+  "Hindi Comedy Specials",
+  "Classic English Films",
+  "Bollywood Evergreen Classics"
 ];
 
 export const NETTUBE_VIOLET = "#8B5CF6";
@@ -51,9 +51,9 @@ export const Icons = {
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
     </svg>
   ),
-  Music: ({ className }: { className?: string }) => (
+  Video: ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className={className}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
     </svg>
   ),
 };

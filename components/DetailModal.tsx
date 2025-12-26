@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Movie } from '../types.ts';
 import { Icons } from '../constants.tsx';
 
@@ -8,65 +8,34 @@ interface DetailModalProps {
   onClose: () => void;
 }
 
-declare global {
-  interface Window {
-    Hls: any;
-  }
-}
-
 const DetailModal: React.FC<DetailModalProps> = ({ movie, onClose }) => {
   const [hasError, setHasError] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   if (!movie) return null;
 
-  const origin = window.location.origin;
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
 
   const playerConfig = useMemo(() => {
     const url = movie.videoUrl;
     
-    // YouTube
     const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
     if (ytMatch) {
+      const videoId = ytMatch[1];
+      // Robust YouTube embed config
       return {
         type: 'iframe',
-        url: `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?autoplay=1&mute=0&rel=0&modestbranding=1&enablejsapi=1`
+        url: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=0&rel=0&modestbranding=1&enablejsapi=1&origin=${encodeURIComponent(origin)}&widget_referrer=${encodeURIComponent(origin)}&fs=1&cc_load_policy=1`
       };
     }
 
-    // Direct HLS or MP4
-    if (url.match(/\.(m3u8|mp4|webm|ogg)$/i) || url.includes('.m3u8')) {
-      return { type: 'video', url };
-    }
-
-    // Embeds (Fmovies style usually uses iframe embeds or direct streams)
-    // If it looks like a streaming site URL that isn't a direct file, we try to iframe it
-    if (url.includes('fmovies') || url.includes('vidsrc') || url.includes('2embed') || url.includes('embed')) {
-        return { type: 'iframe', url: url };
-    }
-
-    // Fallback to iframe for other web sources
     return { type: 'iframe', url };
-  }, [movie.videoUrl]);
+  }, [movie.videoUrl, origin]);
 
   useEffect(() => {
-    if (playerConfig.type === 'video' && videoRef.current && movie.videoUrl.includes('.m3u8')) {
-      if (window.Hls && window.Hls.isSupported()) {
-        const hls = new window.Hls();
-        hls.loadSource(movie.videoUrl);
-        hls.attachMedia(videoRef.current);
-        hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
-          videoRef.current?.play().catch(e => console.log("Auto-play blocked"));
-        });
-      } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
-        // Native HLS support (Safari)
-        videoRef.current.src = movie.videoUrl;
-        videoRef.current.addEventListener('loadedmetadata', () => {
-          videoRef.current?.play().catch(e => console.log("Auto-play blocked"));
-        });
-      }
-    }
-  }, [playerConfig, movie.videoUrl]);
+    setHasError(false);
+    setIsLoading(true);
+  }, [movie.id]);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden">
@@ -84,44 +53,46 @@ const DetailModal: React.FC<DetailModalProps> = ({ movie, onClose }) => {
         </button>
 
         <div className="flex flex-col">
-          <div className="relative aspect-video w-full bg-black">
+          <div className="relative aspect-video w-full bg-black flex items-center justify-center">
+            {isLoading && !hasError && (
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center space-y-4 bg-black">
+                <div className="h-10 w-10 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">Preparing Cinematic Stream</p>
+              </div>
+            )}
+
             {playerConfig.type === 'iframe' && !hasError ? (
               <iframe
                 key={movie.id}
-                className="h-full w-full lg:rounded-t-3xl"
+                className={`h-full w-full lg:rounded-t-3xl transition-opacity duration-700 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
                 src={playerConfig.url}
                 title={movie.title}
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
-                referrerPolicy="no-referrer"
-                onError={() => setHasError(true)}
+                referrerPolicy="strict-origin-when-cross-origin"
+                onLoad={() => setIsLoading(false)}
+                onError={() => {
+                  setHasError(true);
+                  setIsLoading(false);
+                }}
               ></iframe>
-            ) : playerConfig.type === 'video' ? (
-              <video 
-                ref={videoRef}
-                src={movie.videoUrl.includes('.m3u8') ? undefined : movie.videoUrl} 
-                controls 
-                autoPlay 
-                playsInline
-                className="h-full w-full lg:rounded-t-3xl"
-              />
             ) : (
               <div className="flex h-full w-full flex-col items-center justify-center space-y-8 bg-zinc-900 lg:rounded-t-3xl p-12 text-center">
                 <div className="z-10 space-y-4">
-                  <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-violet-600/10 border border-violet-500/20">
-                     <Icons.Play className="h-10 w-10 text-violet-500" />
+                  <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-red-600/10 border border-red-500/20">
+                     <Icons.Play className="h-10 w-10 text-red-500" />
                   </div>
-                  <h3 className="text-2xl font-bold uppercase tracking-widest text-white">Stream Unavailable in Player</h3>
-                  <p className="text-gray-400 max-w-md mx-auto">This title may require a direct secure connection or is currently updating its streaming mirrors.</p>
+                  <h3 className="text-2xl font-bold uppercase tracking-widest text-white">Playback Error</h3>
+                  <p className="text-gray-400 max-w-md mx-auto">This official source might have specific viewing restrictions for your region or embedding limits.</p>
                   <a 
-                    href={movie.videoUrl} 
+                    href={`https://www.youtube.com/watch?v=${movie.id}`} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="z-10 inline-flex items-center space-x-3 rounded-full bg-white px-10 py-4 font-bold text-black transition hover:bg-gray-200 shadow-2xl"
                   >
                     <Icons.Play className="h-5 w-5 fill-current" />
-                    <span>Watch Externally</span>
+                    <span>Watch Full Movie on YouTube</span>
                   </a>
                 </div>
               </div>
@@ -134,9 +105,9 @@ const DetailModal: React.FC<DetailModalProps> = ({ movie, onClose }) => {
                 <div className="space-y-2">
                   <div className="flex items-center space-x-3">
                     <span className="px-2 py-0.5 rounded bg-violet-500/10 text-violet-400 text-[10px] font-bold uppercase tracking-[0.2em] border border-violet-500/20">
-                      High Quality Stream
+                      Full Length Feature
                     </span>
-                    <span className="text-green-400 text-sm font-semibold tracking-wide">ULTRA HD Available</span>
+                    <span className="text-green-400 text-sm font-semibold tracking-wide uppercase">Official Release</span>
                   </div>
                   <h2 className="text-4xl lg:text-6xl font-bold tracking-tight text-white leading-tight">
                     {movie.title}
@@ -159,7 +130,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ movie, onClose }) => {
                   {movie.description}
                 </p>
                 <div className="flex flex-wrap gap-3">
-                  {["Premium Stream", "No Ads", movie.category || "Full Movie", "HDR10"].map(tag => (
+                  {["Verified Provider", "Full Movie", movie.category || "Cinema", "Ad-Supported"].map(tag => (
                     <span key={tag} className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] text-gray-400 uppercase font-bold tracking-[0.2em] shadow-sm">{tag}</span>
                   ))}
                 </div>
